@@ -7,10 +7,32 @@ import org.ajoberstar.gradle.git.release.semver.SemVerStrategy
 import static org.ajoberstar.gradle.git.release.semver.StrategyUtil.*
 
 final class CustomStrategies {
+
+    static final class Custom {
+        static final PartialSemVerStrategy INCREMENT_FROM_RC = closure { state ->
+            def oldNormal = state.nearestVersion.any
+            println state.nearestVersion.any.preReleaseVersion
+            println state.stageFromProp
+            println state.stageFromProp > state.nearestVersion.any.preReleaseVersion
+            switch (state.scopeFromProp) {
+                case ChangeScope.MAJOR:
+                    return state.copyWith(inferredNormal: oldNormal.incrementMajorVersion())
+                case ChangeScope.MINOR:
+                    return state.copyWith(inferredNormal: oldNormal.incrementMinorVersion())
+                case ChangeScope.PATCH:
+                    return state.copyWith(inferredNormal: oldNormal.incrementPatchVersion())
+                default:
+                    return state
+            }
+        }
+    }
+
     static final SemVerStrategy DEV = Strategies.DEFAULT.copyWith(
-        name: 'development',
-        stages: ['dev'] as SortedSet,
-        preReleaseStrategy: all(PreRelease.STAGE_FIXED, PreRelease.COUNT_INCREMENTED)
+            name: 'development',
+            stages: ['dev'] as SortedSet,
+            normalStrategy: Custom.INCREMENT_FROM_RC,
+            preReleaseStrategy: all(PreRelease.STAGE_FIXED, PreRelease.COUNT_INCREMENTED),
+            allowDirtyRepo: false
     )
 }
 
