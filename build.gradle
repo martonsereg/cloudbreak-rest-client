@@ -1,5 +1,18 @@
 import org.ajoberstar.grgit.Grgit
 import org.ajoberstar.gradle.git.release.opinion.Strategies
+import org.ajoberstar.gradle.git.release.opinion.Strategies.PreRelease
+import org.ajoberstar.gradle.git.release.semver.ChangeScope
+import org.ajoberstar.gradle.git.release.semver.PartialSemVerStrategy
+import org.ajoberstar.gradle.git.release.semver.SemVerStrategy
+import static org.ajoberstar.gradle.git.release.semver.StrategyUtil.*
+
+final class CustomStrategies {
+    static final SemVerStrategy DEV = Strategies.DEFAULT.copyWith(
+        name: 'development',
+        stages: ['dev'] as SortedSet,
+        preReleaseStrategy: all(PreRelease.STAGE_FIXED, PreRelease.COUNT_INCREMENTED)
+    )
+}
 
 buildscript {
     repositories {
@@ -12,6 +25,7 @@ buildscript {
     }
 }
 
+
 apply plugin: 'org.ajoberstar.release-opinion'
 
 tasks.release.dependsOn 'build'
@@ -20,17 +34,16 @@ release {
     // need to specify the repository to interact with
     grgit = Grgit.open(project.file('.'))
 
-//    versionStrategy Strategies.FINAL
-//    versionStrategy Strategies.DEVELOPMENT
+    versionStrategy Strategies.FINAL
+    versionStrategy Strategies.DEVELOPMENT
 
-//    versionStrategy Strategies.FINAL
+    versionStrategy CustomStrategies.DEV
 
     // set the default, can be one already added or something else
-    defaultVersionStrategy = Strategies.DEVELOPMENT
+    defaultVersionStrategy = CustomStrategies.DEV
 
     tagStrategy {
         prefixNameWithV = false // defaults to true
-        generateMessage = { version -> "My new version $version.version" }
     }
 
     // the approach to creating tags can also be modified
