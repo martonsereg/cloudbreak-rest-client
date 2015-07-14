@@ -11,18 +11,21 @@ final class CustomStrategies {
     static final class Custom {
         static final PartialSemVerStrategy INCREMENT_FROM_RC = closure { state ->
             def oldNormal = state.nearestVersion.any
-            println state.nearestVersion.any.preReleaseVersion
-            println state.stageFromProp
-            println state.stageFromProp > state.nearestVersion.any.preReleaseVersion
-            switch (state.scopeFromProp) {
-                case ChangeScope.MAJOR:
-                    return state.copyWith(inferredNormal: oldNormal.incrementMajorVersion())
-                case ChangeScope.MINOR:
-                    return state.copyWith(inferredNormal: oldNormal.incrementMinorVersion())
-                case ChangeScope.PATCH:
-                    return state.copyWith(inferredNormal: oldNormal.incrementPatchVersion())
-                default:
-                    return state
+            if (state.nearestVersion.any.preReleaseVersion.contains("rc")) {
+                println "van itt egy rc"
+                switch (state.scopeFromProp) {
+                    case ChangeScope.MAJOR:
+                        return state.copyWith(inferredNormal: oldNormal.incrementMajorVersion())
+                    case ChangeScope.MINOR:
+                        return state.copyWith(inferredNormal: oldNormal.incrementMinorVersion())
+                    case ChangeScope.PATCH:
+                        return state.copyWith(inferredNormal: oldNormal.incrementPatchVersion())
+                    default:
+                        return state
+                }
+            } else {
+                println "nincs itt semmi"
+                return state.copyWith(inferredNormal: oldNormal.normalVersion)
             }
         }
     }
