@@ -12,7 +12,6 @@ final class CustomStrategies {
         static final PartialSemVerStrategy INCREMENT_FROM_RC = closure { state ->
             def oldNormal = state.nearestVersion.any
             if (state.nearestVersion.any.preReleaseVersion.contains("rc")) {
-                println "van itt egy rc"
                 switch (state.scopeFromProp) {
                     case ChangeScope.MAJOR:
                         return state.copyWith(inferredNormal: oldNormal.incrementMajorVersion())
@@ -24,7 +23,6 @@ final class CustomStrategies {
                         return state
                 }
             } else {
-                println "nincs itt semmi"
                 return state.copyWith(inferredNormal: oldNormal.normalVersion)
             }
         }
@@ -60,8 +58,7 @@ release {
     grgit = Grgit.open(project.file('.'))
 
     versionStrategy Strategies.FINAL
-    versionStrategy Strategies.DEVELOPMENT
-
+    versionStrategy Strategies.PRE_RELEASE
     versionStrategy CustomStrategies.DEV
 
     // set the default, can be one already added or something else
