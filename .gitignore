@@ -5,3 +5,4 @@ atlassian*
 .gradle/
 build/
 *.DS_Store
+cloudbreak-rest-client.iws

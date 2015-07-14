@@ -1,14 +1,15 @@
 import org.ajoberstar.grgit.Grgit
 import org.ajoberstar.gradle.git.release.opinion.Strategies
 import org.ajoberstar.gradle.git.release.opinion.Strategies.PreRelease
+import org.ajoberstar.gradle.git.release.opinion.Strategies.BuildMetadata
 import org.ajoberstar.gradle.git.release.semver.ChangeScope
 import org.ajoberstar.gradle.git.release.semver.PartialSemVerStrategy
 import org.ajoberstar.gradle.git.release.semver.SemVerStrategy
 import static org.ajoberstar.gradle.git.release.semver.StrategyUtil.*
 
-final class CustomStrategies {
+final class VersionStrategies {
 
-    static final class Custom {
+    static final class Normal {
         static final PartialSemVerStrategy INCREMENT_FROM_RC = closure { state ->
             def nearestAny = state.nearestVersion.any
             if ("dev".equals(state.stageFromProp) && state.nearestVersion.any.preReleaseVersion.contains("rc")) {
@@ -23,23 +24,31 @@ final class CustomStrategies {
                         return state
                 }
             } else {
-                println 'lofaszt'
                 return state.copyWith(inferredNormal: nearestAny.normalVersion)
             }
         }
     }
 
+    static final SemVerStrategy FEATURE_BRANCH = Strategies.DEFAULT.copyWith(
+            name: 'development',
+            stages: ['fb'] as SortedSet,
+            allowDirtyRepo: true,
+            preReleaseStrategy: all(PreRelease.STAGE_FLOAT, PreRelease.COUNT_COMMITS_SINCE_ANY, PreRelease.SHOW_UNCOMMITTED),
+            buildMetadataStrategy: BuildMetadata.COMMIT_ABBREVIATED_ID,
+            createTag: false
+    )
+
     static final SemVerStrategy DEV = Strategies.DEFAULT.copyWith(
             name: 'development',
             stages: ['dev'] as SortedSet,
-            normalStrategy: Custom.INCREMENT_FROM_RC,
+            normalStrategy: Normal.INCREMENT_FROM_RC,
             preReleaseStrategy: all(PreRelease.STAGE_FIXED, PreRelease.COUNT_INCREMENTED)
     )
 
     static final SemVerStrategy RC = Strategies.DEFAULT.copyWith(
             name: 'pre-release',
             stages: ['rc'] as SortedSet,
-            normalStrategy: Custom.INCREMENT_FROM_RC,
+            normalStrategy: Normal.INCREMENT_FROM_RC,
             preReleaseStrategy: all(PreRelease.STAGE_FIXED, PreRelease.COUNT_INCREMENTED)
     )
 }
@@ -57,29 +66,21 @@ buildscript {
 
 
 apply plugin: 'org.ajoberstar.release-opinion'
-
 tasks.release.dependsOn 'build'
 
 release {
-    // need to specify the repository to interact with
     grgit = Grgit.open(project.file('.'))
 
     versionStrategy Strategies.FINAL
-    versionStrategy CustomStrategies.RC
-    versionStrategy CustomStrategies.DEV
+    versionStrategy VersionStrategies.RC
+    versionStrategy VersionStrategies.FEATURE_BRANCH
+    versionStrategy VersionStrategies.DEV
 
-    // set the default, can be one already added or something else
-    defaultVersionStrategy = CustomStrategies.DEV
+    defaultVersionStrategy = VersionStrategies.FEATURE_BRANCH
 
     tagStrategy {
-        prefixNameWithV = false // defaults to true
+        prefixNameWithV = false
     }
-
-    // the approach to creating tags can also be modified
-//    tagStrategy {
-//        prefixNameWithV = false // defaults to true
-//        generateMessage = { version -> "My new version $version.version" }
-//    }
 }
 
 def env = project.hasProperty('env') ? project.getProperty('env') : 'local'
