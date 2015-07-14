@@ -10,20 +10,21 @@ final class CustomStrategies {
 
     static final class Custom {
         static final PartialSemVerStrategy INCREMENT_FROM_RC = closure { state ->
-            def oldNormal = state.nearestVersion.any
-            if (state.nearestVersion.any.preReleaseVersion.contains("rc")) {
+            def nearestAny = state.nearestVersion.any
+            if ("dev".equals(state.stageFromProp) && state.nearestVersion.any.preReleaseVersion.contains("rc")) {
                 switch (state.scopeFromProp) {
                     case ChangeScope.MAJOR:
-                        return state.copyWith(inferredNormal: oldNormal.incrementMajorVersion())
+                        return state.copyWith(inferredNormal: nearestAny.incrementMajorVersion())
                     case ChangeScope.MINOR:
-                        return state.copyWith(inferredNormal: oldNormal.incrementMinorVersion())
+                        return state.copyWith(inferredNormal: nearestAny.incrementMinorVersion())
                     case ChangeScope.PATCH:
-                        return state.copyWith(inferredNormal: oldNormal.incrementPatchVersion())
+                        return state.copyWith(inferredNormal: nearestAny.incrementPatchVersion())
                     default:
                         return state
                 }
             } else {
-                return state.copyWith(inferredNormal: oldNormal.normalVersion)
+                println 'lofaszt'
+                return state.copyWith(inferredNormal: nearestAny.normalVersion)
             }
         }
     }
@@ -32,8 +33,14 @@ final class CustomStrategies {
             name: 'development',
             stages: ['dev'] as SortedSet,
             normalStrategy: Custom.INCREMENT_FROM_RC,
-            preReleaseStrategy: all(PreRelease.STAGE_FIXED, PreRelease.COUNT_INCREMENTED),
-            allowDirtyRepo: false
+            preReleaseStrategy: all(PreRelease.STAGE_FIXED, PreRelease.COUNT_INCREMENTED)
+    )
+
+    static final SemVerStrategy RC = Strategies.DEFAULT.copyWith(
+            name: 'pre-release',
+            stages: ['rc'] as SortedSet,
+            normalStrategy: Custom.INCREMENT_FROM_RC,
+            preReleaseStrategy: all(PreRelease.STAGE_FIXED, PreRelease.COUNT_INCREMENTED)
     )
 }
 
@@ -58,7 +65,7 @@ release {
     grgit = Grgit.open(project.file('.'))
 
     versionStrategy Strategies.FINAL
-    versionStrategy Strategies.PRE_RELEASE
+    versionStrategy CustomStrategies.RC
     versionStrategy CustomStrategies.DEV
 
     // set the default, can be one already added or something else
